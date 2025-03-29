@@ -1,16 +1,23 @@
-import React from 'react';
-import NFCScanner from './NFCScanner';
-import './App.css'; // Import the CSS file
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import HomePage from "./Home";
+import NFCScanner from "./NFCScanner";
+import ContactManager from "./ContactManager";
+import "./App.css"; // Import the CSS file
 
-function App() {
+const App = () => {
     return (
-        <div className="App">
-            <h1>Hello, React with  Spring Boot!</h1>
-            <p>This is a simple frontend with NFC scanning functionality.</p>
-            <NFCScanner />
-        </div>
+        <Router>
+            <div className="App">
+                <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/nfc-scanner" element={<NFCScanner />} />
+                    <Route path="/contacts" element={<ContactManager />} />
+                </Routes>
+            </div>
+        </Router>
     );
-}
+};
 
 export default App;
 

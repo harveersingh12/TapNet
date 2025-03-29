@@ -1,55 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from "react";
 
 const NFCScanner = () => {
     const [nfcData, setNfcData] = useState(null);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        if ('NDEFReader' in window) {
+    const startScan = async () => {
+        console.log("[DEBUG] Start Scan button clicked");
+
+        if (!("NDEFReader" in window)) {
+            setError("Web NFC is not supported in this browser.");
+            console.error("[DEBUG] Web NFC not supported.");
+            return;
+        }
+
+        try {
+            console.log("[DEBUG] Initializing NDEFReader...");
             const nfc = new window.NDEFReader();
+            await nfc.scan();
+            console.log("[DEBUG] NFC scan started. Waiting for a tag...");
 
-            const startScan = async () => {
-                try {
-                    await nfc.scan();
-                    console.log('NFC scan started');
+            nfc.onreading = (event) => {
+                console.log("[DEBUG] NFC tag detected:", event);
 
-                    nfc.onreading = (event) => {
-                        const decoder = new TextDecoder();
-                        const data = decoder.decode(event.message.records[0].data);
-                        setNfcData(data);
-                        console.log('NFC data:', data);
-                    };
-
-                    nfc.onreadingerror = (error) => {
-                        setError('Error reading NFC tag. Please try again.');
-                        console.error('NFC read error:', error);
-                    };
-                } catch (error) {
-                    setError('NFC scanning failed. Ensure your device supports NFC and the page is served over HTTPS or localhost.');
-                    console.error('NFC scan error:', error);
+                if (!event.message || event.message.records.length === 0) {
+                    setError("NFC tag detected but contains no data.");
+                    console.warn("[DEBUG] NFC tag has no readable records.");
+                    return;
                 }
+
+                const decoder = new TextDecoder();
+                const records = event.message.records.map((record, index) => {
+                    try {
+                        console.log(`[DEBUG] Decoding record ${index + 1}:`, record);
+                        return decoder.decode(record.data);
+                    } catch (decodeError) {
+                        console.error(`[DEBUG] Failed to decode record ${index + 1}:`, decodeError);
+                        return "Unreadable Data";
+                    }
+                });
+
+                setNfcData(records.join(", "));
+                console.log("[DEBUG] NFC Data Read:", records);
             };
 
-            startScan();
-        } else {
-            setError('Web NFC is not supported in this browser.');
+            nfc.onreadingerror = (readError) => {
+                setError("Error reading NFC tag. Please try again.");
+                console.error("[DEBUG] NFC read error:", readError);
+            };
+
+        } catch (scanError) {
+            setError("NFC scanning failed. Ensure your device supports NFC and the page is served over HTTPS or localhost.");
+            console.error("[DEBUG] NFC scan error:", scanError);
         }
-    }, []);
+    };
 
     return (
-        <div>
+        <div className="App">
             <h1>NFC Scanner</h1>
-            {error ? (
-                <p style={{ color: 'red' }}>{error}</p>
-            ) : (
+            {error && <p style={{ color: "red" }}>{error}</p>}
+            <button onClick={startScan}>Start NFC Scan</button>
+            {nfcData && (
                 <div>
-                    <p>Scan an NFC tag to see its data.</p>
-                    {nfcData && (
-                        <div>
-                            <h2>Scanned Data:</h2>
-                            <p>{nfcData}</p>
-                        </div>
-                    )}
+                    <h2>Scanned Data:</h2>
+                    <p>{nfcData}</p>
                 </div>
             )}
         </div>
